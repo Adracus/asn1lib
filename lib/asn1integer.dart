@@ -75,7 +75,9 @@ class ASN1Integer extends ASN1Object {
    */
 
   static dynamic decodeInteger(Uint8List bytes, {int offset: 0}) {
-    return int.parse(new BigInteger(bytes.sublist(offset)).toRadix());
+    var result = new BigInteger(bytes.sublist(offset));
+    if (bytes.length - offset > 8) return result;
+    return int.parse(result.toRadix());
   }
 
   String toString() => "ASNInteger($intValue)";
