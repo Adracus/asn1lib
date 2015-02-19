@@ -54,46 +54,10 @@ class ASN1Integer extends ASN1Object {
    */
   static Uint8List encodeIntValue(var intValue) {
     var result;
+    if (intValue is int) intValue = new BigInteger(intValue);
+    if (intValue is! BigInteger) throw new ArgumentError.value(intValue);
     if (intValue is BigInteger ){
       result = new Uint8List.fromList(intValue.toByteArray());
-    } else {
-      var t = new Int64List(1);
-         t[0] = intValue;
-         // x is a byte view into the long representation
-         //var x = new Uint8List.view(t.asByteArray(0,1));
-         var x = new Uint8List.view(t.buffer);
-
-         // now we have an array of 8 bytes in little endian order
-         // we need to return the smallest representation
-         int i = 7; // start at the last byte and work back
-
-         var padValue = 0;
-         if( intValue.isNegative ) {
-           padValue = 0xFF;
-         }
-
-         // discard bytes we don't need for representation
-         // This will be 0 for positives, 0xFF for negatives
-         while( x[i] == padValue && i > 0) --i;
-
-         // Now we need to test the high bit of the remaining digits
-         // we may need to add an extra byte back in for legal 2-comp representation
-
-         if( intValue.isNegative ) {
-           if( (x[i] & 0x80) == 0 ) {
-             ++i;
-           }
-         }
-         else {
-           if( (x[i] & 0x80) != 0 ) {
-             ++i;
-           }
-         }
-
-         result = new Uint8List(i+1);
-         for( int j =0; j < (i+1); ++j) {
-           result[j] = x[i-j];
-         }
     }
     return result;
   }
@@ -111,28 +75,7 @@ class ASN1Integer extends ASN1Object {
    */
 
   static dynamic decodeInteger(Uint8List bytes, {int offset: 0}) {
-
-    if (bytes.length - offset > 8) return new BigInteger(bytes.sublist(offset));
-    var pad = (bytes[offset] & 0x80) == 0 ? 0 : 0xFF;
-    var t = new Int64List(1);
-    // create an 8 byte "view" into the above 64 bit integer
-
-    var x = new Uint8List.view(t.buffer);
-
-
-    int j = 0;
-    int i = bytes.length -1;
-    // reverse copy the bytes into the view
-    while( i >= offset) {
-      x[j++] = bytes[i--];
-    }
-    // any remaining bytes in the view get set to the pad value
-    while( j <= 7) {
-      x[j++] = pad;
-    }
-
-    // the 64 bit integer is now in t[0]
-    return t[0];
+    return int.parse(new BigInteger(bytes.sublist(offset)).toRadix());
   }
 
   String toString() => "ASNInteger($intValue)";
